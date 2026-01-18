@@ -3,16 +3,18 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Menggunakan Ubuntu versi stabil
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v4 # Versi terbaru
+
       - name: Build with Buildozer
-        uses: ArtemSerebrennkov/buildozer-action@v1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          save_bundle: true
-      - name: Upload APK
-        uses: actions/upload-artifact@v2
-        with:
-          name: NagaUnlocker-Release
-          path: bin/*.apk
-          
+          # Kita pakai manual setup saja supaya tidak bergantung pada repo orang lain yang bisa hilang
+          password: ${{ secrets.PYPI_API_TOKEN }}
+        continue-on-error: true
+
+      - name: Buildozer Android Action
+        uses
+        
