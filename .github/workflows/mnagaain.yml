@@ -1,4 +1,4 @@
-name: Build NagaUnlocker Auto-Detect
+name: NagaUnlocker Self-Healing Build
 on: [push]
 
 jobs:
@@ -8,59 +8,54 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Langkah Debug: Tampilkan semua file biar ketahuan posisinya (Optional)
-      - name: Cari File (Debug)
-        run: find . -name "buildozer.spec"
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install System Dependencies
+      - name: 🛠️ Tahap 1: Instalasi Standar & Alat Perbaikan
+        id: setup_tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential git python3-dev ffmpeg libsdl2-dev \
-            libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-            zlib1g-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good libffi-dev libssl-dev \
-            openjdk-17-jdk unzip zip
+          # Langsung instal alat yang sering bikin eror di video tadi
+          sudo apt-get install -y build-essential git python3-dev \
+            autoconf automake libtool pkg-config libffi-dev \
+            libssl-dev openjdk-17-jdk unzip zip zlib1g-dev libusb-1.0-0-dev
 
-      - name: Install Buildozer
+      - name: 🐍 Tahap 2: Instalasi Buildozer
         run: |
           pip install --upgrade pip
           pip install --upgrade Cython==0.29.33 buildozer
 
-      - name: Find Spec & Build APK
+      - name: 🚀 Tahap 3: Mencari Spec & Build (Logika Auto-Fix)
         run: |
-          # Cari file buildozer.spec di seluruh folder
+          # 1. Cari file spec
           SPEC_FILE=$(find . -name "buildozer.spec" -type f -print -quit)
-
-          if [ -z "$SPEC_FILE" ]; then
-            echo "❌ ERROR FATAL: File 'buildozer.spec' benar-benar tidak ditemukan!"
-            echo "Pastikan Abang sudah membuat file tersebut dan namanya huruf kecil semua."
-            exit 1
-          else
-            echo "✅ DITEMUKAN: File ada di $SPEC_FILE"
+          if [ -z "$SPEC_FILE" ]; then echo "Spec not found"; exit 1; fi
+          mv "$SPEC_FILE" ./buildozer.spec
+          
+          # 2. Jalankan Build dengan logika percobaan ulang jika gagal
+          echo "Memulai Build Pertama..."
+          yes | buildozer -v android debug || {
+            echo "⚠️ Build Gagal! Mendeteksi Error dan Mencoba Memperbaiki..."
             
-            # Jika file tidak di root, pindahkan ke root
-            if [ "$SPEC_FILE" != "./buildozer.spec" ]; then
-               echo "🔄 Memindahkan file ke halaman utama..."
-               mv "$SPEC_FILE" ./buildozer.spec
-            fi
+            # --- LOGIKA SELF-HEALING ---
+            # Jika error karena libtool/autoconf (seperti di video)
+            sudo apt-get install -y autotools-dev
             
-            # Jalankan Buildozer
-            echo "🚀 Mulai merakit APK..."
+            # Bersihkan sisa build yang rusak
+            buildozer android clean
+            
+            echo "🔄 Mencoba Build Ulang setelah perbaikan otomatis..."
             yes | buildozer -v android debug
-          fi
+          }
         env:
           ACCEPT_SDK_LICENSE: "yes"
 
-      - name: Upload APK Jadi
+      - name: 📦 Tahap 4: Upload APK Jika Sukses
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: NagaUnlocker-App
+          name: NagaUnlocker-Success-APK
           path: bin/*.apk
           
