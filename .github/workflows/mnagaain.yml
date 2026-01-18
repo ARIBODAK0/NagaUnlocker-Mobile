@@ -1,29 +1,59 @@
-name: Build NagaUnlocker APK
+name: Build NagaUnlocker Official
 on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04 # Menggunakan Ubuntu versi stabil
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # Versi terbaru
+        uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          # Kita pakai manual setup saja supaya tidak bergantung pada repo orang lain yang bisa hilang
-          password: ${{ secrets.PYPI_API_TOKEN }}
-        continue-on-error: true
+          python-version: '3.10'
 
-      - name: Buildozer Android Action
-        uses: ArseniySerebrennikov/buildozer-action@v0.0.1 # Versi alternatif yang aktif
-        with:
-          save_bundle: true
-          buildozer_version: master
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libgstreamer1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            libffi-dev \
+            libssl-dev \
+            openjdk-17-jdk \
+            unzip \
+            zip
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4 # WAJIB V4 agar tidak error
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --upgrade pip
+          pip install --upgrade Cython==0.29.33 buildozer
+
+      - name: Build APK with Buildozer
+        run: |
+          # Perintah ini akan merakit APK secara paksa
+          yes | buildozer -v android debug
+        env:
+          ACCEPT_SDK_LICENSE: "yes"
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
         with:
-          name: NagaUnlocker-Release
+          name: NagaUnlocker-Final-Release
           path: bin/*.apk
           
