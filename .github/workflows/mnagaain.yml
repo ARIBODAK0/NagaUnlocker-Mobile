@@ -1,4 +1,4 @@
-name: Build NagaUnlocker Official
+name: Build NagaUnlocker Auto-Detect
 on: [push]
 
 jobs:
@@ -7,6 +7,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      # Langkah Debug: Tampilkan semua file biar ketahuan posisinya (Optional)
+      - name: Cari File (Debug)
+        run: find . -name "buildozer.spec"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -17,43 +21,46 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
-            git \
-            python3-dev \
-            ffmpeg \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libsdl2-ttf-dev \
-            libportmidi-dev \
-            libswscale-dev \
-            libavformat-dev \
-            libavcodec-dev \
-            zlib1g-dev \
-            libgstreamer1.0-dev \
-            gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good \
-            libffi-dev \
-            libssl-dev \
-            openjdk-17-jdk \
-            unzip \
-            zip
+            build-essential git python3-dev ffmpeg libsdl2-dev \
+            libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            zlib1g-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good libffi-dev libssl-dev \
+            openjdk-17-jdk unzip zip
 
-      - name: Install Buildozer and Cython
+      - name: Install Buildozer
         run: |
           pip install --upgrade pip
           pip install --upgrade Cython==0.29.33 buildozer
 
-      - name: Build APK with Buildozer
+      - name: Find Spec & Build APK
         run: |
-          # Perintah ini akan merakit APK secara paksa
-          yes | buildozer -v android debug
+          # Cari file buildozer.spec di seluruh folder
+          SPEC_FILE=$(find . -name "buildozer.spec" -type f -print -quit)
+
+          if [ -z "$SPEC_FILE" ]; then
+            echo "❌ ERROR FATAL: File 'buildozer.spec' benar-benar tidak ditemukan!"
+            echo "Pastikan Abang sudah membuat file tersebut dan namanya huruf kecil semua."
+            exit 1
+          else
+            echo "✅ DITEMUKAN: File ada di $SPEC_FILE"
+            
+            # Jika file tidak di root, pindahkan ke root
+            if [ "$SPEC_FILE" != "./buildozer.spec" ]; then
+               echo "🔄 Memindahkan file ke halaman utama..."
+               mv "$SPEC_FILE" ./buildozer.spec
+            fi
+            
+            # Jalankan Buildozer
+            echo "🚀 Mulai merakit APK..."
+            yes | buildozer -v android debug
+          fi
         env:
           ACCEPT_SDK_LICENSE: "yes"
 
-      - name: Upload Finished APK
+      - name: Upload APK Jadi
         uses: actions/upload-artifact@v4
         with:
-          name: NagaUnlocker-Final-Release
+          name: NagaUnlocker-App
           path: bin/*.apk
           
