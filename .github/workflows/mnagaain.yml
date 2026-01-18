@@ -16,5 +16,14 @@ jobs:
         continue-on-error: true
 
       - name: Buildozer Android Action
-        uses
-        
+        uses: ArseniySerebrennikov/buildozer-action@v0.0.1 # Versi alternatif yang aktif
+        with:
+          save_bundle: true
+          buildozer_version: master
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4 # WAJIB V4 agar tidak error
+        with:
+          name: NagaUnlocker-Release
+          path: bin/*.apk
+          
