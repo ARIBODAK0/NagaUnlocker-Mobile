@@ -1,0 +1,7 @@
+python3
+kivy
+pyusb
+pyserial
+requests
+tqdm
+pycryptodome
