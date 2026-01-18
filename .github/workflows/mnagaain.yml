@@ -1,4 +1,4 @@
-name: NagaUnlocker Self-Healing Build
+name: NagaUnlocker-Self-Healing
 on: [push]
 
 jobs:
@@ -8,54 +8,37 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: 🛠️ Tahap 1: Instalasi Standar & Alat Perbaikan
-        id: setup_tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          # Langsung instal alat yang sering bikin eror di video tadi
-          sudo apt-get install -y build-essential git python3-dev \
-            autoconf automake libtool pkg-config libffi-dev \
-            libssl-dev openjdk-17-jdk unzip zip zlib1g-dev libusb-1.0-0-dev
+          sudo apt-get install -y build-essential git python3-dev autoconf automake libtool pkg-config libffi-dev libssl-dev openjdk-17-jdk unzip zip zlib1g-dev libusb-1.0-0-dev
 
-      - name: 🐍 Tahap 2: Instalasi Buildozer
+      - name: Install Buildozer
         run: |
           pip install --upgrade pip
           pip install --upgrade Cython==0.29.33 buildozer
 
-      - name: 🚀 Tahap 3: Mencari Spec & Build (Logika Auto-Fix)
+      - name: Auto-Detect Spec and Build
         run: |
-          # 1. Cari file spec
           SPEC_FILE=$(find . -name "buildozer.spec" -type f -print -quit)
-          if [ -z "$SPEC_FILE" ]; then echo "Spec not found"; exit 1; fi
-          mv "$SPEC_FILE" ./buildozer.spec
+          if [ -n "$SPEC_FILE" ]; then
+            mv "$SPEC_FILE" ./buildozer.spec
+          fi
           
-          # 2. Jalankan Build dengan logika percobaan ulang jika gagal
-          echo "Memulai Build Pertama..."
-          yes | buildozer -v android debug || {
-            echo "⚠️ Build Gagal! Mendeteksi Error dan Mencoba Memperbaiki..."
-            
-            # --- LOGIKA SELF-HEALING ---
-            # Jika error karena libtool/autoconf (seperti di video)
-            sudo apt-get install -y autotools-dev
-            
-            # Bersihkan sisa build yang rusak
-            buildozer android clean
-            
-            echo "🔄 Mencoba Build Ulang setelah perbaikan otomatis..."
-            yes | buildozer -v android debug
-          }
+          # Logika perbaikan: Jika gagal pertama, instal alat tambahan dan ulangi
+          yes | buildozer -v android debug || (sudo apt-get install -y autotools-dev && buildozer android clean && yes | buildozer -v android debug)
         env:
           ACCEPT_SDK_LICENSE: "yes"
 
-      - name: 📦 Tahap 4: Upload APK Jika Sukses
+      - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: NagaUnlocker-Success-APK
           path: bin/*.apk
- 
+          
