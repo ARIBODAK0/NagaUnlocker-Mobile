@@ -1,0 +1,18 @@
+name: Build NagaUnlocker APK
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build with Buildozer
+        uses: ArtemSerebrennkov/buildozer-action@v1
+        with:
+          save_bundle: true
+      - name: Upload APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: NagaUnlocker-Release
+          path: bin/*.apk
+          
